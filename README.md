@@ -59,3 +59,24 @@ Contributions are welcome! Please submit a pull request or open an issue for any
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for details.
+````
+# Overview
+# This section provides a high-level description of the application, including its purpose and key features.
+
+# Project Structure
+# This section outlines the directory structure of the project, helping developers navigate the codebase.
+
+# Features
+# This section lists the main functionalities of the application, such as the columns in the interface and the ability to load CSV files.
+
+# Setup Instructions
+# This section provides step-by-step instructions for setting up and running the application.
+
+# Usage
+# This section explains how to use the application, including interacting with the interface and updating individual statuses.
+
+# Contributing
+# This section invites contributions and provides guidelines for submitting pull requests or opening issues.
+
+# License
+# This section specifies the licensing terms for the project.

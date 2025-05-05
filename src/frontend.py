@@ -1,43 +1,50 @@
 import wx
 import wx.grid
 import pandas as pd
-from utils.csv_loader import load_data  # Corrected import
-from backend import CheckInOutManager, Individual  # Ensure Individual is imported
+from utils.csv_loader import load_data  # Import the CSV/Excel data loader
+from backend import CheckInOutManager, Individual  # Import backend classes
 
 class CheckInCheckOutApp(wx.App):
+    """
+    Main application class for the Check-In/Check-Out tool.
+    """
     def OnInit(self):
-        self.frame = MainFrame()
-        self.frame.Show()
+        self.frame = MainFrame()  # Create the main frame
+        self.frame.Show()  # Show the frame
         return True
 
 class MainFrame(wx.Frame):
+    """
+    Main GUI frame for the Check-In/Check-Out tool.
+    """
     def __init__(self):
         super().__init__(parent=None, title='Check-In/Check-Out Tool')
-        self.panel = wx.Panel(self)
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.panel = wx.Panel(self)  # Create a panel to hold all widgets
+        self.sizer = wx.BoxSizer(wx.VERTICAL)  # Use a vertical box sizer for layout
 
         # Add title and description
         title = wx.StaticText(self.panel, label='Check-In/Check-Out Management')
         title.SetFont(wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
-        title.SetForegroundColour(wx.Colour(30, 144, 255))
+        title.SetForegroundColour(wx.Colour(30, 144, 255))  # Set title color
 
         description = wx.StaticText(self.panel, label='Manage attendance and evacuation status efficiently.')
         description.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-        description.SetForegroundColour(wx.Colour(105, 105, 105))
+        description.SetForegroundColour(wx.Colour(105, 105, 105))  # Set description color
 
         # Add status bar
-        self.status_bar = self.CreateStatusBar()
+        self.status_bar = self.CreateStatusBar()  # Create a status bar at the bottom
         self.status_bar.SetStatusText('Welcome to the Check-In/Check-Out Tool!')
 
         # Backend manager
-        self.manager = CheckInOutManager()
+        self.manager = CheckInOutManager()  # Initialize the backend manager
 
         # Search bar
-        self.search_bar = wx.TextCtrl(self.panel, style=wx.TE_PROCESS_ENTER)
-        self.search_bar.Bind(wx.EVT_TEXT, self.on_search)
+        self.search_bar = wx.TextCtrl(self.panel, style=wx.TE_PROCESS_ENTER)  # Create a search bar
+        self.search_bar.Bind(wx.EVT_TEXT, self.on_search)  # Bind search event
 
+        # Create a grid to display data
         self.grid = wx.grid.Grid(self.panel)
-        self.grid.CreateGrid(0, 8)
+        self.grid.CreateGrid(0, 8)  # Initialize with 0 rows and 8 columns
         self.grid.SetColLabelValue(0, "Name")
         self.grid.SetColLabelValue(1, "Vorname")
         self.grid.SetColLabelValue(2, "Reisegruppe")
@@ -47,44 +54,45 @@ class MainFrame(wx.Frame):
         self.grid.SetColLabelValue(6, "Evakuiert")
         self.grid.SetColLabelValue(7, "Notiz")
 
-        # Hide grid lines
+        # Hide grid lines for a cleaner look
         self.grid.EnableGridLines(False)
 
-        # Add alternating row colors
+        # Add alternating row colors for better readability
         self.grid.SetDefaultCellBackgroundColour(wx.Colour(240, 240, 240))
         self.grid.SetDefaultCellTextColour(wx.Colour(0, 0, 0))
 
-        # Update buttons to look more modern
+        # Create a button to load data
         self.load_button = wx.Button(self.panel, label='Load File')
         self.load_button.SetBackgroundColour(wx.Colour(30, 144, 255))  # Set button color
         self.load_button.SetForegroundColour(wx.Colour(255, 255, 255))  # Set text color
         self.load_button.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
-        self.load_button.Bind(wx.EVT_BUTTON, self.on_load_csv)
+        self.load_button.Bind(wx.EVT_BUTTON, self.on_load_csv)  # Bind button click event
 
+        # Labels to display counts
         self.present_count_label = wx.StaticText(self.panel, label='Anwesend: 0')
         self.present_count_label.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
-        self.present_count_label.SetForegroundColour(wx.Colour(34, 139, 34))
+        self.present_count_label.SetForegroundColour(wx.Colour(34, 139, 34))  # Green color for present count
 
         self.evacuated_count_label = wx.StaticText(self.panel, label='Evakuiert: 0')
         self.evacuated_count_label.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
-        self.evacuated_count_label.SetForegroundColour(wx.Colour(178, 34, 34))
+        self.evacuated_count_label.SetForegroundColour(wx.Colour(178, 34, 34))  # Red color for evacuated count
 
         # Add widgets to the sizer
-        self.sizer.Add(title, 0, wx.CENTER | wx.ALL, 10)
-        self.sizer.Add(description, 0, wx.CENTER | wx.BOTTOM, 10)
-        self.sizer.Add(self.search_bar, 0, wx.EXPAND | wx.ALL, 5)  # Search bar expands horizontally
-        self.sizer.Add(self.grid, 1, wx.EXPAND | wx.ALL, 10)  # Grid expands in both directions with padding
-        self.sizer.Add(self.load_button, 0, wx.CENTER | wx.ALL, 5)  # Load button stays centered
-        self.sizer.Add(self.present_count_label, 0, wx.CENTER | wx.ALL, 5)  # Present count stays centered
-        self.sizer.Add(self.evacuated_count_label, 0, wx.CENTER | wx.ALL, 5)  # Evacuated count stays centered
+        self.sizer.Add(title, 0, wx.CENTER | wx.ALL, 10)  # Add title to the sizer
+        self.sizer.Add(description, 0, wx.CENTER | wx.BOTTOM, 10)  # Add description to the sizer
+        self.sizer.Add(self.search_bar, 0, wx.EXPAND | wx.ALL, 5)  # Add search bar to the sizer
+        self.sizer.Add(self.grid, 1, wx.EXPAND | wx.ALL, 10)  # Add grid to the sizer
+        self.sizer.Add(self.load_button, 0, wx.CENTER | wx.ALL, 5)  # Add load button to the sizer
+        self.sizer.Add(self.present_count_label, 0, wx.CENTER | wx.ALL, 5)  # Add present count label to the sizer
+        self.sizer.Add(self.evacuated_count_label, 0, wx.CENTER | wx.ALL, 5)  # Add evacuated count label to the sizer
 
-        self.panel.SetSizerAndFit(self.sizer)  # Ensure the sizer adapts to the panel
+        self.panel.SetSizerAndFit(self.sizer)  # Set the sizer for the panel
         self.SetSizeHints(800, 600)  # Set minimum window size
         self.Bind(wx.EVT_SIZE, self.on_resize)  # Bind resize event
 
         self.row_to_individual = {}  # Map grid rows to Individual objects
 
-        self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED, self.on_cell_value_changed)
+        self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED, self.on_cell_value_changed)  # Bind cell change event
 
         # Bind column header click event for sorting
         self.grid.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self.on_column_header_click)
@@ -108,6 +116,9 @@ class MainFrame(wx.Frame):
         event.Skip()
 
     def on_load_csv(self, event):
+        """
+        Load data from a CSV or Excel file and populate the grid.
+        """
         with wx.FileDialog(self, "Open File", wildcard="CSV and Excel files (*.csv;*.xls;*.xlsx)|*.csv;*.xls;*.xlsx",
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as file_dialog:
             if file_dialog.ShowModal() == wx.ID_CANCEL:
@@ -130,6 +141,9 @@ class MainFrame(wx.Frame):
                 self.populate_grid(self.manager.individuals)
 
     def populate_grid(self, individuals):
+        """
+        Populate the grid with individual data.
+        """
         # Default to sorting by group if no specific sorting is applied
         if not hasattr(self, 'current_sort_column') or self.current_sort_column is None:
             individuals = sorted(individuals, key=lambda ind: ind.reisegruppe if ind.reisegruppe else "")
@@ -177,7 +191,9 @@ class MainFrame(wx.Frame):
         self.update_counters()
 
     def update_column_headers(self):
-        """Update column headers to show sorting indicator."""
+        """
+        Update column headers to show sorting indicator.
+        """
         headers = ["Name", "Vorname", "Reisegruppe", "Alter", "Geschlecht", "Anwesend", "Evakuiert", "Notiz"]
         for col_idx, header in enumerate(headers):
             if hasattr(self, 'current_sort_column') and self.current_sort_column == col_idx:
@@ -186,30 +202,45 @@ class MainFrame(wx.Frame):
                 self.grid.SetColLabelValue(col_idx, header)
 
     def toggle_presence(self, event):
+        """
+        Toggle the presence status of an individual.
+        """
         row = event.GetRow()
         self.manager.toggle_presence(row)
         self.update_counters()
         self.populate_grid(self.manager.individuals)
 
     def toggle_evacuated(self, event):
+        """
+        Toggle the evacuation status of an individual.
+        """
         row = event.GetRow()
         self.manager.toggle_evacuated(row)
         self.update_counters()
         self.populate_grid(self.manager.individuals)
 
     def on_search(self, event):
+        """
+        Handle search queries and filter the grid data.
+        """
         query = self.search_bar.GetValue()
         filtered_individuals = self.manager.search(query)  # Use the backend's search method
         sorted_individuals = self.manager.sort_by_reisegruppe(filtered_individuals)
         self.populate_grid(sorted_individuals)
 
     def update_counters(self):
+        """
+        Update the counters for present and evacuated individuals.
+        """
         present_count = self.manager.get_present_count()
         evacuated_count = self.manager.get_evacuated_count()
         self.present_count_label.SetLabel(f'Anwesend: {present_count}')
         self.evacuated_count_label.SetLabel(f'Evakuiert: {evacuated_count}')
 
     def on_cell_click(self, event):
+        """
+        Handle cell click events to toggle presence or evacuation status.
+        """
         row = event.GetRow()
         col = event.GetCol()
 
@@ -227,6 +258,9 @@ class MainFrame(wx.Frame):
         self.populate_grid(self.manager.individuals)
 
     def on_cell_value_changed(self, event):
+        """
+        Handle cell value changes to update notes.
+        """
         row = event.GetRow()
         col = event.GetCol()
 
@@ -238,17 +272,23 @@ class MainFrame(wx.Frame):
                 print(f"Updated note for {individual.name}: {new_value}")  # Debugging
 
     def sort_by_anwesend(self, event):
-        """Sort the grid by the 'Anwesend' column, placing true buttons at the top."""
+        """
+        Sort the grid by the 'Anwesend' column, placing true buttons at the top.
+        """
         sorted_individuals = sorted(self.manager.individuals, key=lambda ind: not ind.anwesend)
         self.populate_grid(sorted_individuals)
 
     def sort_by_evakuiert(self, event):
-        """Sort the grid by the 'Evakuiert' column, placing true buttons at the top."""
+        """
+        Sort the grid by the 'Evakuiert' column, placing true buttons at the top.
+        """
         sorted_individuals = sorted(self.manager.individuals, key=lambda ind: not ind.evakuiert)
         self.populate_grid(sorted_individuals)
 
     def on_column_header_click(self, event):
-        """Handle column header click to sort the grid by the selected column or revert to group sorting."""
+        """
+        Handle column header click to sort the grid by the selected column or revert to group sorting.
+        """
         col = event.GetCol()
 
         # If the same column is clicked again, unselect it and sort by group

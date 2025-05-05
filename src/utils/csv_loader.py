@@ -3,6 +3,11 @@ import os
 import pandas as pd
 
 def load_csv(file_path):
+    """
+    Reads data from a CSV file and returns it as a list of dictionaries.
+    :param file_path: Path to the CSV file
+    :return: List of dictionaries representing rows in the CSV file
+    """
     data = []
     with open(file_path, mode='r', encoding='utf-8') as file:
         reader = csv.DictReader(file)
@@ -11,11 +16,16 @@ def load_csv(file_path):
     return data
 
 def save_csv(file_path, data):
+    """
+    Writes data to a CSV file.
+    :param file_path: Path to the CSV file
+    :param data: List of dictionaries to write to the file
+    """
     with open(file_path, mode='w', encoding='utf-8', newline='') as file:
-        fieldnames = data[0].keys()
+        fieldnames = data[0].keys()  # Use keys from the first dictionary as column headers
         writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(data)
+        writer.writeheader()  # Write the header row
+        writer.writerows(data)  # Write the data rows
 
 def load_data(file_path):
     """
@@ -26,7 +36,7 @@ def load_data(file_path):
     :return: List of rows from the file
     """
     try:
-        file_extension = os.path.splitext(file_path)[1].lower()
+        file_extension = os.path.splitext(file_path)[1].lower()  # Get the file extension
         if file_extension == '.csv':
             try:
                 # Read CSV file and skip problematic rows
@@ -35,10 +45,10 @@ def load_data(file_path):
                 print(f"Error reading CSV file: {e}")
                 return []
         elif file_extension in ['.xls', '.xlsx']:
-            df = pd.read_excel(file_path)
+            df = pd.read_excel(file_path)  # Read Excel file
         else:
             raise ValueError(f"Unsupported file type: {file_extension}")
-        return df.values.tolist()
+        return df.values.tolist()  # Convert DataFrame to a list of lists
     except Exception as e:
         print(f"Error loading file: {e}")
         return []
