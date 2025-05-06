@@ -188,14 +188,12 @@ class MainFrame(wx.Frame):
         """
         Open a dialog to select which table to populate and load data from a CSV or Excel file.
         """
-        # Dialog to select the table
         with wx.SingleChoiceDialog(self, "Select Table", "Load Data", ["Team Table", "Guest Table"]) as choice_dialog:
             if choice_dialog.ShowModal() == wx.ID_CANCEL:
                 return  # User cancelled the dialog
 
             selected_table = choice_dialog.GetStringSelection()
 
-        # File dialog to select the file
         with wx.FileDialog(self, "Open File", wildcard="CSV and Excel files (*.csv;*.xls;*.xlsx)|*.csv;*.xls;*.xlsx",
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as file_dialog:
             if file_dialog.ShowModal() == wx.ID_CANCEL:

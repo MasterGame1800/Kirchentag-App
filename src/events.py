@@ -1,6 +1,7 @@
 import wx
 from wx.lib.agw.aui import AuiManager
 from backend import Individual
+from utils.csv_loader import load_data  # Import the updated CSV loader
 
 def on_resize(event):
     """Handle window resize events."""
@@ -27,8 +28,13 @@ def on_load_csv(event):
             return  # User cancelled the dialog
 
         file_path = file_dialog.GetPath()
-        # Use the manager instance to call load_data
-        data = frame.manager.load_data(file_path)
+        data = load_data(file_path)  # Use the updated loader
+
+        # Validate the data format
+        if not data or not all(len(row) >= 5 for row in data):
+            wx.MessageBox("The selected file is not in the correct format.", "Error", wx.ICON_ERROR)
+            return
+
         if data:
             individuals = []
             for row in data:

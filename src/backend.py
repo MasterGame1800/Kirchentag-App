@@ -1,5 +1,6 @@
 import csv
 import uuid  # Import for generating unique IDs
+from utils.csv_loader import load_data, save_csv  # Import the updated CSV functions
 
 class Individual:
     """
@@ -25,18 +26,23 @@ class CheckInOutManager:
 
     def load_data(self, filepath):
         """
-        Loads individual data from a CSV file and populates the individuals list.
-        :param filepath: Path to the CSV file
+        Loads individual data from a file and populates the individuals list.
+        :param filepath: Path to the file (CSV or Excel)
         """
-        with open(filepath, mode='r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
+        data = load_data(filepath)  # Use the updated loader
+        if not data:
+            print(f"Failed to load data from {filepath}. Please check the file format.")
+            return
+
+        self.individuals = []  # Clear existing data
+        for row in data:
+            if len(row) >= 5:  # Ensure the row has enough columns
                 individual = Individual(
-                    name=row['Name'],
-                    vorname=row['Vorname'],
-                    reisegruppe=row['Reisegruppe'],
-                    alter=row['Alter'],
-                    geschlecht=row['Geschlecht']
+                    name=row[0],
+                    vorname=row[1],
+                    reisegruppe=row[2],
+                    alter=row[3],
+                    geschlecht=row[4]
                 )
                 self.individuals.append(individual)
 

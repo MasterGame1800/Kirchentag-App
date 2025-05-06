@@ -1,3 +1,4 @@
+
 def on_search(event):
     """
     Handle search queries and filter the grid data based on the selected table.
