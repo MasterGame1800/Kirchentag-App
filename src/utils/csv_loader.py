@@ -1,6 +1,10 @@
 import csv
 import os
 import pandas as pd
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def load_csv(file_path):
     """
@@ -9,10 +13,16 @@ def load_csv(file_path):
     :return: List of dictionaries representing rows in the CSV file
     """
     data = []
-    with open(file_path, mode='r', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            data.append(row)
+    try:
+        with open(file_path, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                data.append(row)
+        logging.info(f"Successfully loaded CSV file: {file_path}")
+    except FileNotFoundError:
+        logging.error(f"File not found: {file_path}")
+    except Exception as e:
+        logging.error(f"Error reading CSV file: {e}")
     return data
 
 def save_csv(file_path, data):
@@ -21,11 +31,15 @@ def save_csv(file_path, data):
     :param file_path: Path to the CSV file
     :param data: List of dictionaries to write to the file
     """
-    with open(file_path, mode='w', encoding='utf-8', newline='') as file:
-        fieldnames = data[0].keys()  # Use keys from the first dictionary as column headers
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()  # Write the header row
-        writer.writerows(data)  # Write the data rows
+    try:
+        with open(file_path, mode='w', encoding='utf-8', newline='') as file:
+            fieldnames = data[0].keys()  # Use keys from the first dictionary as column headers
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()  # Write the header row
+            writer.writerows(data)  # Write the data rows
+        logging.info(f"Successfully saved data to CSV file: {file_path}")
+    except Exception as e:
+        logging.error(f"Error writing to CSV file: {e}")
 
 def load_data(file_path):
     """
@@ -41,14 +55,18 @@ def load_data(file_path):
             try:
                 # Read CSV file and skip problematic rows
                 df = pd.read_csv(file_path, on_bad_lines='skip')
+                logging.info(f"Successfully loaded CSV file: {file_path}")
             except Exception as e:
-                print(f"Error reading CSV file: {e}")
+                logging.error(f"Error reading CSV file: {e}")
                 return []
         elif file_extension in ['.xls', '.xlsx']:
             df = pd.read_excel(file_path)  # Read Excel file
+            logging.info(f"Successfully loaded Excel file: {file_path}")
         else:
             raise ValueError(f"Unsupported file type: {file_extension}")
         return df.values.tolist()  # Convert DataFrame to a list of lists
+    except ValueError as ve:
+        logging.error(f"Value error: {ve}")
     except Exception as e:
-        print(f"Error loading file: {e}")
+        logging.error(f"Error loading file: {e}")
         return []

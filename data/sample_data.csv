@@ -1,12 +1,3 @@
-# This CSV file contains sample data for testing the Check-In/Check-Out tool.
-# Columns:
-# - Vorname: First name of the individual
-# - Name: Last name of the individual
-# - Reisegruppe: Group the individual belongs to
-# - Alter: Age of the individual
-# - Geschlecht: Gender of the individual (männlich, weiblich, divers)
-#
-# Example rows:
 Name,Vorname,Reisegruppe,Alter,Geschlecht
 Doe,John,Gruppe A,25,männlich
 Smith,Jane,Gruppe B,30,weiblich

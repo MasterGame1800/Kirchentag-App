@@ -110,19 +110,29 @@ class CheckInOutManager:
                 individual.notiz = note
                 break
 
-    def search(self, query):
+    def search(self, query, table=None):
         """
-        Filters individuals based on a search query in the first three columns.
+        Filters individuals based on a search query and optionally by table.
         :param query: The search string (case-insensitive)
-        :return: List of individuals matching the query
+        :param table: Optional table name to filter individuals (e.g., 'guest', 'staff')
+        :return: List of individuals matching the query and table
         """
         query = query.lower()
-        return [
+        filtered = [
             individual for individual in self.individuals
             if query in individual.name.lower()
             or query in individual.vorname.lower()
             or query in individual.reisegruppe.lower()
         ]
+
+        if table:
+            # Example logic for filtering by table (adjust as needed)
+            if table == "guest":
+                filtered = [ind for ind in filtered if ind.reisegruppe == "Guest"]
+            elif table == "staff":
+                filtered = [ind for ind in filtered if ind.reisegruppe == "Staff"]
+
+        return filtered
 
     def sort_by_reisegruppe(self, individuals=None):
         """
