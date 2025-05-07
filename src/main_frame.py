@@ -15,6 +15,9 @@ class MainFrame(wx.Frame):
         self.panel = wx.Panel(self)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
+        # Initialize the CheckInOutManager
+        self.manager = CheckInOutManager()
+
         # Add title and description
         title = wx.StaticText(self.panel, label='Check-In/Check-Out Management')
         title.SetFont(wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
@@ -24,78 +27,58 @@ class MainFrame(wx.Frame):
         description.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         description.SetForegroundColour(wx.Colour(105, 105, 105))
 
-        # Add status bar
-        self.status_bar = self.CreateStatusBar()
-        self.status_bar.SetStatusText('Welcome to the Check-In/Check-Out Tool!')
+        self.sizer.Add(title, 0, wx.CENTER | wx.ALL, 10)
+        self.sizer.Add(description, 0, wx.CENTER | wx.BOTTOM, 10)
 
-        # Backend manager
-        self.manager = CheckInOutManager()
-
-        # Search bar
-        self.search_bar = wx.TextCtrl(self.panel, style=wx.TE_PROCESS_ENTER)
-        self.search_bar.Bind(wx.EVT_TEXT, on_search)
-
-        # Add a dropdown to select the table for searching
-        self.table_selection = wx.Choice(self.panel, choices=["Team Table", "Guest Table"])
-        self.table_selection.SetSelection(0)  # Default to the first option
-
-        # Adjust layout to place the search bar and table selection side by side
-        search_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        search_sizer.Add(self.search_bar, 1, wx.EXPAND | wx.ALL, 5)
-        search_sizer.Add(self.table_selection, 0, wx.EXPAND | wx.ALL, 5)
-        self.sizer.Add(search_sizer, 0, wx.EXPAND)
-
-        # Create grids using the new helper method
+        # Create grids for Team Table and Guest Table
         column_labels = ["Name", "Vorname", "Reisegruppe", "Alter", "Geschlecht", "Anwesend", "Evakuiert", "Notiz"]
         self.team_grid = create_grid(self.panel, len(column_labels), column_labels)
-        self.grid = create_grid(self.panel, len(column_labels), column_labels)
+        self.guest_grid = create_grid(self.panel, len(column_labels), column_labels)
 
-        # Create a button to load data
+        # Add grids to a vertical sizer
+        grid_sizer = wx.BoxSizer(wx.VERTICAL)
+        grid_sizer.Add(self.team_grid, 1, wx.EXPAND | wx.ALL, 5)  # Team Table on top
+        grid_sizer.Add(self.guest_grid, 1, wx.EXPAND | wx.ALL, 5)  # Guest Table underneath
+
+        # Add the grid sizer to the main sizer
+        self.sizer.Add(grid_sizer, 1, wx.EXPAND)
+
+        # Add the load button
         self.load_button = wx.Button(self.panel, label='Load File')
         self.load_button.SetBackgroundColour(wx.Colour(30, 144, 255))
         self.load_button.SetForegroundColour(wx.Colour(255, 255, 255))
         self.load_button.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
         self.load_button.Bind(wx.EVT_BUTTON, self.on_load_csv)
-
-        # Add widgets to the sizer
-        self.sizer.Add(title, 0, wx.CENTER | wx.ALL, 10)
-        self.sizer.Add(description, 0, wx.CENTER | wx.BOTTOM, 10)
-
-        # Adjust the layout to stack the grids vertically with a 1/3 and 2/3 height ratio
-        self.grid_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.grid_sizer.Add(self.team_grid, 1, wx.EXPAND | wx.ALL, 10)
-        self.grid_sizer.Add(self.grid, 2, wx.EXPAND | wx.ALL, 10)
-
-        # Add the grid sizer to the main sizer
-        self.sizer.Add(self.grid_sizer, 1, wx.EXPAND)
-
-        # Add the load button
         self.sizer.Add(self.load_button, 0, wx.CENTER | wx.ALL, 5)
 
-        # Ensure the layout is updated
+        # Ensure the layout is updated and dynamic
         self.panel.SetSizerAndFit(self.sizer)
-        self.SetSizeHints(800, 600)
-        self.Bind(wx.EVT_SIZE, on_resize)
+        self.SetSizeHints(800, 600)  # Minimum size
+        self.Bind(wx.EVT_SIZE, self.on_resize)
 
         self.row_to_individual = {}
 
-        self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED, self.on_cell_value_changed)
-        self.grid.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self.on_column_header_click)
-        self.team_grid.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self.on_team_column_header_click)
+        self.team_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED, self.on_cell_value_changed)
+        self.team_grid.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self.on_column_header_click)
+        self.guest_grid.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self.on_team_column_header_click)
 
         # Default sorting by group (Reisegruppe)
         self.current_sort_column = 2  # Index for "Reisegruppe"
-        self.populate_grid(sorted(self.manager.individuals, key=lambda ind: ind.reisegruppe if ind.reisegruppe else ""))
-        self.update_column_headers()
+        self.populate_grid(sorted(self.manager.individuals, key=lambda ind: ind.reisegruppe if ind.reisegruppe else ""), self.guest_grid)
+        self.update_column_headers(self.guest_grid)
 
-        self.ShowFullScreen(False)  # Lock the window in fullscreen mode
         self.Center()  # Ensure the window is centered
-        self.SetSize(self.GetVirtualSize())  # Adjust the size to match the display
-
         print("Finalizing layout and showing MainFrame...")
         self.Layout()
         self.Show()
         print("MainFrame should now be visible.")
+
+    def on_resize(self, event):
+        """
+        Handle window resize events to ensure dynamic resizing while keeping the formatting.
+        """
+        self.Layout()  # Recalculate layout to adapt to new size
+        event.Skip()
 
     def on_cell_value_changed(self, event):
         """Handle cell value changes to update notes."""
@@ -139,17 +122,20 @@ class MainFrame(wx.Frame):
             else:
                 return  # Do nothing if an invalid column is clicked
 
-        self.populate_grid(sorted_individuals)
-        self.update_column_headers()
+        self.populate_grid(sorted_individuals, self.guest_grid)
+        self.update_column_headers(self.guest_grid)
 
-    def update_column_headers(self):
-        """Update column headers to show sorting indicator."""
+    def update_column_headers(self, grid):
+        """
+        Update column headers to show sorting indicator for the specified grid.
+        :param grid: The grid to update headers for (e.g., self.team_grid or self.guest_grid)
+        """
         headers = ["Name", "Vorname", "Reisegruppe", "Alter", "Geschlecht", "Anwesend", "Evakuiert", "Notiz"]
         for col_idx, header in enumerate(headers):
             if hasattr(self, 'current_sort_column') and self.current_sort_column == col_idx:
-                self.grid.SetColLabelValue(col_idx, f"{header} ↓")  # Add arrow for sorted column
+                grid.SetColLabelValue(col_idx, f"{header} ↓")  # Add arrow for sorted column
             else:
-                self.grid.SetColLabelValue(col_idx, header)
+                grid.SetColLabelValue(col_idx, header)
 
     def populate_team_grid(self, individuals):
         """
@@ -300,7 +286,7 @@ class MainFrame(wx.Frame):
                         self.populate_team_grid(individuals)
                     elif selected_table == "Guest Table":
                         self.manager.individuals = individuals
-                        self.populate_grid(self.manager.individuals)
+                        self.populate_grid(self.manager.individuals, self.guest_grid)
 
         file_button.Bind(wx.EVT_BUTTON, on_file_button_click)
 
@@ -325,30 +311,31 @@ class MainFrame(wx.Frame):
                     self.populate_team_grid([individual])
                 elif selected_table == "Guest Table":
                     self.manager.individuals.append(individual)
-                    self.populate_grid(self.manager.individuals)
+                    self.populate_grid(self.manager.individuals, self.guest_grid)
             except ValueError:
                 wx.MessageBox("Invalid input. Please ensure all fields are filled correctly.", "Error", wx.ICON_ERROR)
 
         dialog.Destroy()
 
-    def populate_grid(self, individuals):
+    def populate_grid(self, individuals, grid):
         """
-        Populate the main grid with individual data.
+        Populate the specified grid with individual data.
         :param individuals: List of Individual objects
+        :param grid: The grid to populate (e.g., self.team_grid or self.guest_grid)
         """
-        self.grid.ClearGrid()
-        if self.grid.GetNumberRows() > 0:
-            self.grid.DeleteRows(0, self.grid.GetNumberRows())
+        grid.ClearGrid()
+        if grid.GetNumberRows() > 0:
+            grid.DeleteRows(0, grid.GetNumberRows())
 
         for row_idx, individual in enumerate(individuals):
-            self.grid.AppendRows(1)
-            self.grid.SetCellValue(row_idx, 0, individual.name)
-            self.grid.SetCellValue(row_idx, 1, individual.vorname)
-            self.grid.SetCellValue(row_idx, 2, individual.reisegruppe)
-            self.grid.SetCellValue(row_idx, 3, str(individual.alter))
-            self.grid.SetCellValue(row_idx, 4, individual.geschlecht)
-            self.grid.SetCellValue(row_idx, 5, "Yes" if individual.anwesend else "No")
-            self.grid.SetCellValue(row_idx, 6, "Yes" if individual.evakuiert else "No")
-            self.grid.SetCellValue(row_idx, 7, individual.notiz)
+            grid.AppendRows(1)
+            grid.SetCellValue(row_idx, 0, individual.name)
+            grid.SetCellValue(row_idx, 1, individual.vorname)
+            grid.SetCellValue(row_idx, 2, individual.reisegruppe)
+            grid.SetCellValue(row_idx, 3, str(individual.alter))
+            grid.SetCellValue(row_idx, 4, individual.geschlecht)
+            grid.SetCellValue(row_idx, 5, "Yes" if individual.anwesend else "No")
+            grid.SetCellValue(row_idx, 6, "Yes" if individual.evakuiert else "No")
+            grid.SetCellValue(row_idx, 7, individual.notiz)
 
         self.row_to_individual = {row_idx: individual for row_idx, individual in enumerate(individuals)}
