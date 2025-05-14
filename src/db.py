@@ -6,6 +6,7 @@
 import sqlite3
 import os
 import datetime
+import requests
 
 # Path to the SQLite database file (appdata.db in the same directory as this script)
 DB_PATH = os.path.join(os.path.dirname(__file__), 'appdata.db')
@@ -99,3 +100,51 @@ def clear_all():
         c.execute('DELETE FROM individuals')
         c.execute('DELETE FROM log')
         conn.commit()
+
+# --- Networked DB backend for local testing ---
+class NetworkDB:
+    def __init__(self, base_url='http://127.0.0.1:5000'):
+        self.base_url = base_url
+
+    def save_individuals(self, table_type, individuals):
+        data = [
+            {
+                'name': ind.name,
+                'vorname': ind.vorname,
+                'reisegruppe': ind.reisegruppe,
+                'alter': ind.alter,
+                'geschlecht': ind.geschlecht,
+                'anwesend': ind.anwesend,
+                'evakuiert': ind.evakuiert,
+                'notiz': ind.notiz
+            } for ind in individuals
+        ]
+        requests.post(f'{self.base_url}/individuals/{table_type}', json=data)
+
+    def load_individuals(self, table_type):
+        from backend import Individual
+        resp = requests.get(f'{self.base_url}/individuals/{table_type}')
+        resp.raise_for_status()
+        individuals = []
+        for d in resp.json():
+            ind = Individual(d['name'], d['vorname'], d['reisegruppe'], d['alter'], d['geschlecht'])
+            ind.anwesend = d['anwesend']
+            ind.evakuiert = d['evakuiert']
+            ind.notiz = d['notiz']
+            individuals.append(ind)
+        return individuals
+
+    def add_log_entry(self, fullname, reisegruppe, status):
+        requests.post(f'{self.base_url}/log', json={
+            'fullname': fullname,
+            'reisegruppe': reisegruppe,
+            'status': status
+        })
+
+    def load_log(self):
+        resp = requests.get(f'{self.base_url}/log')
+        resp.raise_for_status()
+        return [ (d['timestamp'], d['fullname'], d['reisegruppe'], d['status']) for d in resp.json() ]
+
+    def clear_all(self):
+        requests.post(f'{self.base_url}/clear')

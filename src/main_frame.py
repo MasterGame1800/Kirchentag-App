@@ -5,7 +5,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from backend import CheckInOutManager, Individual
 import datetime
-import db
+import os
 
 # UI class for the main window, sets up all widgets and layout
 class Ui_MainWindow(object):
@@ -85,6 +85,11 @@ class Ui_MainWindow(object):
         self.addEntryButton.setObjectName("addEntryButton")
         self.horizontalLayout.addWidget(self.addEntryButton)
         self.verticalLayoutRight.addLayout(self.horizontalLayout)
+        # Add a Reload button to the right panel
+        self.reloadButton = QtWidgets.QPushButton(parent=self.centralwidget)
+        self.reloadButton.setObjectName("reloadButton")
+        self.reloadButton.setText("Reload")
+        self.verticalLayoutRight.addWidget(self.reloadButton)
         # Log label
         self.log_label = QtWidgets.QLabel(parent=self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
@@ -134,218 +139,3 @@ class Ui_MainWindow(object):
         self.loadFileButton.setText(_translate("MainWindow", "Lade Datei"))
         self.addEntryButton.setText(_translate("MainWindow", "Neuer Eintrag"))
         self.log_label.setText(_translate("MainWindow", "Verlauf"))
-
-# Main application window and logic
-class MainFrame(QtWidgets.QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.ui = Ui_MainWindow()
-        self.ui.setupUi(self)
-        self.manager = CheckInOutManager()  # Not used directly, but could be for future logic
-        db.init_db()  # Ensure database is initialized
-        # Connect UI signals to slots
-        self.ui.addEntryButton.clicked.connect(self.add_entry)
-        self.ui.loadFileButton.clicked.connect(self.load_file)
-        self.ui.searchLineEdit.textChanged.connect(self.search_guest_table)
-        self.ui.tableSelection.currentIndexChanged.connect(self.update_table_selection)
-        self.selected_table = self.ui.guest_table  # Default to guest table
-        # Load data from database
-        self.guest_individuals = db.load_individuals('guest')
-        self.team_individuals = db.load_individuals('team')
-        # Set up both tables
-        self.setup_table(self.ui.team_table)
-        self.setup_table(self.ui.guest_table)
-        self.populate_table(self.ui.guest_table, self.guest_individuals)
-        self.populate_table(self.ui.team_table, self.team_individuals)
-        self.update_counters()
-        self.load_log_to_widget()
-
-    def load_log_to_widget(self):
-        """
-        Load all log entries from the database and display them in the QTextEdit log screen.
-        """
-        self.ui.logScreen.clear()
-        for ts, fullname, reisegruppe, status in db.load_log():
-            self.ui.logScreen.append(f"[{ts}] {fullname} ({reisegruppe}) {status}")
-
-    def save_all(self):
-        """
-        Save all individuals (guests and team) to the database.
-        """
-        db.save_individuals('guest', self.guest_individuals)
-        db.save_individuals('team', self.team_individuals)
-
-    def update_table_selection(self):
-        """
-        Update the selected_table reference based on ComboBox selection.
-        Do not reload or repopulate the table here, only switch the reference.
-        """
-        if self.ui.tableSelection.currentText() == "Gäste":
-            self.selected_table = self.ui.guest_table
-        else:
-            self.selected_table = self.ui.team_table
-        # Do NOT call populate_table or load_file here!
-
-    def setup_table(self, table):
-        """
-        Configure the table widget with appropriate headers and stretch them to fill the table width.
-        Enable sorting and set default sort to the group column (Reisegruppe).
-        """
-        headers = ["Name", "Vorname", "Reisegruppe", "Alter", "Geschlecht", "Anwesend", "Evakuiert", "Notiz"]
-        table.setColumnCount(len(headers))
-        table.setHorizontalHeaderLabels(headers)
-        # Make headers fill the complete table width
-        header = table.horizontalHeader()
-        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
-        # Enable sorting
-        table.setSortingEnabled(True)
-        # Default sort by 'Reisegruppe' (index 2), ascending
-        table.sortItems(2, QtCore.Qt.SortOrder.AscendingOrder)
-        # QTableWidget shows sort arrow automatically
-
-    def load_file(self):
-        """
-        Load data from a CSV file and append the entries at the bottom of the selected table.
-        Only append to the currently selected table's data.
-        """
-        file_dialog = QtWidgets.QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(self, "Open CSV File", "", "CSV Files (*.csv);;All Files (*)")
-        if file_path:
-            self.selected_table.setSortingEnabled(False)
-            new_individuals = []
-            import csv
-            with open(file_path, newline='', encoding='utf-8') as csvfile:
-                reader = csv.reader(csvfile)
-                next(reader, None)  # skip header
-                for row in reader:
-                    if len(row) >= 5:
-                        name, vorname, reisegruppe, alter, geschlecht = row[:5]
-                        anwesend = row[5].strip().lower() == 'yes' if len(row) > 5 else False
-                        evakuiert = row[6].strip().lower() == 'yes' if len(row) > 6 else False
-                        notiz = row[7] if len(row) > 7 else ''
-                        ind = Individual(name, vorname, reisegruppe, int(alter), geschlecht)
-                        ind.anwesend = anwesend
-                        ind.evakuiert = evakuiert
-                        ind.notiz = notiz
-                        new_individuals.append(ind)
-            if self.selected_table == self.ui.guest_table:
-                self.guest_individuals.extend(new_individuals)
-                self.populate_table(self.ui.guest_table, self.guest_individuals)
-            else:
-                self.team_individuals.extend(new_individuals)
-                self.populate_table(self.ui.team_table, self.team_individuals)
-            self.update_counters()
-            self.selected_table.setSortingEnabled(True)
-            self.selected_table.sortItems(2, QtCore.Qt.SortOrder.AscendingOrder)
-            self.save_all()
-
-    def add_entry(self):
-        """
-        Add a new entry to the currently selected table only.
-        """
-        new_individual = Individual("New", "Entry", "Group", 0, "Unknown")
-        if self.selected_table == self.ui.guest_table:
-            self.guest_individuals.append(new_individual)
-            self.populate_table(self.ui.guest_table, self.guest_individuals)
-        else:
-            self.team_individuals.append(new_individual)
-            self.populate_table(self.ui.team_table, self.team_individuals)
-        self.update_counters()
-        self.save_all()
-
-    def populate_table(self, table, individuals):
-        """
-        Populate the table with individual data. The first 5 columns are set to read-only.
-        The 6th and 7th columns (Anwesend, Evakuiert) are displayed as buttons.
-        The 8th column (Notiz) wraps text so long notes remain visible.
-        """
-        table.setRowCount(len(individuals))
-        for row_idx, individual in enumerate(individuals):
-            # Create items for first 5 columns (read-only)
-            items = [
-                QtWidgets.QTableWidgetItem(individual.name),
-                QtWidgets.QTableWidgetItem(individual.vorname),
-                QtWidgets.QTableWidgetItem(individual.reisegruppe),
-                QtWidgets.QTableWidgetItem(str(individual.alter)),
-                QtWidgets.QTableWidgetItem(individual.geschlecht)
-            ]
-            for col in range(5):
-                items[col].setFlags(items[col].flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
-                table.setItem(row_idx, col, items[col])
-
-            # 6th column: Anwesend as button (toggle present/absent)
-            present_btn = QtWidgets.QPushButton("Yes" if individual.anwesend else "No")
-            present_btn.setCheckable(True)
-            present_btn.setChecked(individual.anwesend)
-            def present_handler(checked, btn=present_btn, idx=row_idx, table_ref=table):
-                # Handler for toggling present status
-                now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                if table_ref == self.ui.guest_table:
-                    person = self.guest_individuals[idx]
-                    table_type = "Gäste"
-                else:
-                    person = self.team_individuals[idx]
-                    table_type = "Team"
-                status = "arrived" if checked else "left"
-                log_entry = f"[{now}] [{table_type}] {person.vorname} {person.name} ({person.reisegruppe})  {status}"
-                self.ui.logScreen.append(log_entry)  # Write to log widget
-                db.add_log_entry(f"{table_type} {status}", f"{person.vorname} {person.name}", person.reisegruppe)  # Write to DB
-                btn.setText("Yes" if checked else "No")
-                self.save_all()
-                # Dynamically create and add the evacuated button only when checked for the first time
-                if checked and not table.cellWidget(idx, 6):
-                    evacuated_btn = QtWidgets.QPushButton("No")
-                    evacuated_btn.setCheckable(True)
-                    evacuated_btn.setChecked(False)
-                    def evacuated_handler(checked, btn=evacuated_btn, idx=idx, table_ref=table):
-                        # Handler for toggling evacuated status
-                        if table_ref == self.ui.guest_table:
-                            self.guest_individuals[idx].evakuiert = checked
-                        else:
-                            self.team_individuals[idx].evakuiert = checked
-                        btn.setText("Yes" if checked else "No")
-                        self.update_counters()
-                        self.save_all()
-                    evacuated_btn.toggled.connect(evacuated_handler)
-                    table.setCellWidget(idx, 6, evacuated_btn)
-                # If unchecked, remove the evacuated button
-                elif not checked and table.cellWidget(idx, 6):
-                    if table_ref == self.ui.guest_table:
-                        self.guest_individuals[idx].evakuiert = False
-                    else:
-                        self.team_individuals[idx].evakuiert = False
-                    table.removeCellWidget(idx, 6)
-                self.update_counters()
-            present_btn.toggled.connect(present_handler)
-            table.setCellWidget(row_idx, 5, present_btn)
-
-            # 8th column: Notiz (editable text, with word wrap)
-            notiz_item = QtWidgets.QTableWidgetItem(individual.notiz)
-            notiz_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
-            table.setItem(row_idx, 7, notiz_item)
-        # Enable word wrap for the Notiz column
-        table.setWordWrap(True)
-        table.resizeRowsToContents()
-        self.save_all()
-
-    def update_counters(self):
-        """
-        Update the counters for present and evacuated individuals across both tables.
-        """
-        present_count = sum(1 for ind in self.guest_individuals if ind.anwesend) + sum(1 for ind in self.team_individuals if ind.anwesend)
-        evacuated_count = sum(1 for ind in self.guest_individuals if ind.evakuiert) + sum(1 for ind in self.team_individuals if ind.evakuiert)
-        self.ui.presentCountLabel.setText(f"Anwesend: {present_count}")
-        self.ui.evacuatedCountLabel.setText(f"Evakuiert: {evacuated_count}")
-
-    def search_guest_table(self, text):
-        """
-        Filter the guest_table rows based on the search text (case-insensitive, any column).
-        """
-        for row in range(self.ui.guest_table.rowCount()):
-            match = False
-            for col in range(self.ui.guest_table.columnCount()):
-                item = self.ui.guest_table.item(row, col)
-                if item and text.lower() in item.text().lower():
-                    match = True
-                    break
-            self.ui.guest_table.setRowHidden(row, not match)
