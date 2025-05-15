@@ -89,7 +89,7 @@ def load_individuals(table_type):
 def add_log_entry(fullname, reisegruppe, status):
     with get_connection() as conn:
         c = conn.cursor()
-        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
         c.execute('INSERT INTO log (timestamp, fullname, reisegruppe, status) VALUES (?, ?, ?, ?)',
                   (now, fullname, reisegruppe, status))
         conn.commit()

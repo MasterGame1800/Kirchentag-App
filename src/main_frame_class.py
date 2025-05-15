@@ -41,20 +41,31 @@ class MainFrame(QtWidgets.QMainWindow):
 
         # --- Real-time polling for all modes ---
         self.poll_timer = QtCore.QTimer(self)
-        self.poll_timer.setInterval(450)  # 2 seconds
+        self.poll_timer.setInterval(500)  # 100 ms
         self.poll_timer.timeout.connect(self.reload_from_db)
         self.poll_timer.start()
 
     def load_log_to_widget(self):
         log_screen = self.ui.logScreen
         scrollbar = log_screen.verticalScrollBar()
-        at_bottom = scrollbar.value() == scrollbar.maximum()
+        # Save previous scroll position and range
+        prev_value = scrollbar.value()
+        prev_max = scrollbar.maximum()
+        at_bottom = prev_value == prev_max and prev_max > 0
         log_screen.clear()
         for ts, fullname, reisegruppe, status in self.db.load_log():
             log_screen.append(f"[{ts}] {fullname} ({reisegruppe}) {status}")
+        # After appending, restore scroll position
         if at_bottom:
             scrollbar.setValue(scrollbar.maximum())
-        # else: keep current position
+        else:
+            # Try to keep the same relative position
+            new_max = scrollbar.maximum()
+            if prev_max > 0:
+                rel_pos = prev_value / prev_max
+                scrollbar.setValue(int(rel_pos * new_max))
+            else:
+                scrollbar.setValue(0)
 
     def append_log_entry(self, entry):
         log_screen = self.ui.logScreen
@@ -146,10 +157,10 @@ class MainFrame(QtWidgets.QMainWindow):
             # Ensure button text matches checked state
             present_btn.setText("Yes" if individual.anwesend else "No")
             def present_handler(checked, btn=present_btn, idx=row_idx, table_ref=table):
-                now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
                 if table_ref == self.ui.guest_table:
                     person = self.guest_individuals[idx]
-                    table_type = "Gäste"
+                    table_type = "Gast"
                 else:
                     person = self.team_individuals[idx]
                     table_type = "Team"
@@ -201,6 +212,10 @@ class MainFrame(QtWidgets.QMainWindow):
                     self.save_all()
                 evacuated_btn.toggled.connect(evacuated_handler)
                 table.setCellWidget(row_idx, 6, evacuated_btn)
+            else:
+                # Always remove the evacuated button if not anwesend
+                if table.cellWidget(row_idx, 6):
+                    table.removeCellWidget(row_idx, 6)
             notiz_item = QtWidgets.QTableWidgetItem(individual.notiz)
             notiz_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
             table.setItem(row_idx, 7, notiz_item)

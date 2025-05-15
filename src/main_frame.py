@@ -131,6 +131,19 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
+        self.evacuatedCountLabel.setStyleSheet("color: red; font-weight: bold; font-size: 40px;")
+        self.presentCountLabel.setStyleSheet("color: green; font-weight: bold; font-size: 40px;")
+        self.log_label.setStyleSheet("font-weight: bold; font-size: 20px;")
+        self.logScreen.setStyleSheet("font-size: 12px;")
+        self.tableSelection.setStyleSheet("font-size: 15px;")
+        self.searchLineEdit.setStyleSheet("font-size: 15px;")
+        self.loadFileButton.setStyleSheet("font-size: 15px;")
+        self.addEntryButton.setStyleSheet("font-size: 15px;")
+        self.reloadButton.setStyleSheet("font-size: 15px;")
+        self.team_table.setStyleSheet("font-size: 12px;")
+        self.guest_table.setStyleSheet("font-size: 12px;")
+
+ 
     def retranslateUi(self, MainWindow):
         # Set the text for UI elements (for translation/localization)
         _translate = QtCore.QCoreApplication.translate
