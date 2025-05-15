@@ -41,7 +41,7 @@ class MainFrame(QtWidgets.QMainWindow):
 
         # --- Real-time polling for all modes ---
         self.poll_timer = QtCore.QTimer(self)
-        self.poll_timer.setInterval(500)  # 100 ms
+        self.poll_timer.setInterval(1000)  # 1 second interval
         self.poll_timer.timeout.connect(self.reload_from_db)
         self.poll_timer.start()
 
