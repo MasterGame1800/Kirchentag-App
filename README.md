@@ -1,19 +1,22 @@
 # Kirchentag-App Check-in/Check-out Tool
 
 ## Overview
-The Kirchentag-App is a check-in/check-out tool developed using wxPython. It allows users to manage attendance for events by tracking individuals' presence and providing a platform for personal notes.
+The Kirchentag-App is a check-in/check-out tool developed using wxPython and PyQt6. It allows users to manage attendance for events by tracking individuals' presence and providing a platform for personal notes. The app supports both local and networked (REST API) database backends.
 
 ## Project Structure
 ```
 Kirchentag-App
 ├── src
-│   ├── frontend.py      # wxPython GUI implementation
-│   ├── backend.py       # Business logic and data management
-│   ├── main.py          # Entry point for the application
+│   ├── main.py            # Entry point for the application (PyQt6)
+│   ├── main_frame.py      # UI class for the main window (PyQt6)
+│   ├── main_frame_class.py# MainFrame logic (PyQt6)
+│   ├── backend.py         # Business logic and data management
+│   ├── db.py              # SQLite and networked DB backend
+│   ├── api_server.py      # Flask REST API for networked mode
 │   └── utils
-│       └── csv_loader.py # Utility functions for CSV loading
+│       └── csv_loader.py  # Utility functions for CSV loading
 ├── data
-│   └── sample_data.csv   # Sample data for testing
+│   └── sample_data_X.csv  # Sample data for testing
 ├── requirements.txt       # Project dependencies
 └── README.md              # Project documentation
 ```
@@ -28,8 +31,11 @@ Kirchentag-App
   - Anwesend (Presence button)
   - Evakuiert (Evacuated button)
   - Notiz (Personal notes area)
-- Count of present individuals displayed.
+- Count of present and evacuated individuals displayed.
 - CSV file loading managed through a separate window.
+- Real-time UI updates (polling every 2 seconds).
+- Log field is scrollable and preserves scroll position.
+- Supports both local SQLite and networked REST API database backends.
 
 ## Setup Instructions
 1. Clone the repository:
@@ -48,35 +54,22 @@ Kirchentag-App
    python src/main.py
    ```
 
+4. (Optional) To use networked mode, run the API server:
+   ```
+   python src/api_server.py
+   ```
+   And set the environment variable `NETWORK_DB=1` before starting the app.
+
 ## Usage
 - Upon launching the application, the main window will display the attendance table.
 - Use the "Anwesend" and "Evakuiert" buttons to update the status of individuals.
 - Enter personal notes in the designated area.
 - Load data from the CSV file through the provided interface.
+- The log field is scrollable and will not snap to the bottom unless you are already at the bottom.
+- The UI updates automatically every 2 seconds to reflect database changes.
 
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for details.
-````
-# Overview
-# This section provides a high-level description of the application, including its purpose and key features.
-
-# Project Structure
-# This section outlines the directory structure of the project, helping developers navigate the codebase.
-
-# Features
-# This section lists the main functionalities of the application, such as the columns in the interface and the ability to load CSV files.
-
-# Setup Instructions
-# This section provides step-by-step instructions for setting up and running the application.
-
-# Usage
-# This section explains how to use the application, including interacting with the interface and updating individual statuses.
-
-# Contributing
-# This section invites contributions and provides guidelines for submitting pull requests or opening issues.
-
-# License
-# This section specifies the licensing terms for the project.

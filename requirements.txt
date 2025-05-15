@@ -2,3 +2,5 @@ wxPython
 pandas
 numpy
 PyQt6
+requests
+flask
