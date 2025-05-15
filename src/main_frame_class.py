@@ -39,17 +39,31 @@ class MainFrame(QtWidgets.QMainWindow):
         self.update_counters()
         self.load_log_to_widget()
 
-        # --- Real-time polling for network mode ---
-        if network_mode:
-            self.poll_timer = QtCore.QTimer(self)
-            self.poll_timer.setInterval(2000)  # 2 seconds
-            self.poll_timer.timeout.connect(self.reload_from_db)
-            self.poll_timer.start()
+        # --- Real-time polling for all modes ---
+        self.poll_timer = QtCore.QTimer(self)
+        self.poll_timer.setInterval(450)  # 2 seconds
+        self.poll_timer.timeout.connect(self.reload_from_db)
+        self.poll_timer.start()
 
     def load_log_to_widget(self):
-        self.ui.logScreen.clear()
+        log_screen = self.ui.logScreen
+        scrollbar = log_screen.verticalScrollBar()
+        at_bottom = scrollbar.value() == scrollbar.maximum()
+        log_screen.clear()
         for ts, fullname, reisegruppe, status in self.db.load_log():
-            self.ui.logScreen.append(f"[{ts}] {fullname} ({reisegruppe}) {status}")
+            log_screen.append(f"[{ts}] {fullname} ({reisegruppe}) {status}")
+        if at_bottom:
+            scrollbar.setValue(scrollbar.maximum())
+        # else: keep current position
+
+    def append_log_entry(self, entry):
+        log_screen = self.ui.logScreen
+        scrollbar = log_screen.verticalScrollBar()
+        at_bottom = scrollbar.value() == scrollbar.maximum()
+        log_screen.append(entry)
+        if at_bottom:
+            scrollbar.setValue(scrollbar.maximum())
+        # else: keep current position
 
     def save_all(self):
         self.db.save_individuals('guest', self.guest_individuals)
@@ -129,6 +143,8 @@ class MainFrame(QtWidgets.QMainWindow):
             present_btn = QtWidgets.QPushButton("Yes" if individual.anwesend else "No")
             present_btn.setCheckable(True)
             present_btn.setChecked(individual.anwesend)
+            # Ensure button text matches checked state
+            present_btn.setText("Yes" if individual.anwesend else "No")
             def present_handler(checked, btn=present_btn, idx=row_idx, table_ref=table):
                 now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 if table_ref == self.ui.guest_table:
@@ -137,16 +153,19 @@ class MainFrame(QtWidgets.QMainWindow):
                 else:
                     person = self.team_individuals[idx]
                     table_type = "Team"
+                # Always update the individual's state to match the button
+                person.anwesend = checked
                 status = "arrived" if checked else "left"
                 log_entry = f"[{now}] [{table_type}] {person.vorname} {person.name} ({person.reisegruppe})  {status}"
-                self.ui.logScreen.append(log_entry)
+                self.append_log_entry(log_entry)
                 self.db.add_log_entry(f"{table_type} {status}", f"{person.vorname} {person.name}", person.reisegruppe)
                 btn.setText("Yes" if checked else "No")
                 self.save_all()
                 if checked and not table.cellWidget(idx, 6):
-                    evacuated_btn = QtWidgets.QPushButton("No")
+                    evacuated_btn = QtWidgets.QPushButton("Yes" if person.evakuiert else "No")
                     evacuated_btn.setCheckable(True)
-                    evacuated_btn.setChecked(False)
+                    evacuated_btn.setChecked(person.evakuiert)
+                    evacuated_btn.setText("Yes" if person.evakuiert else "No")
                     def evacuated_handler(checked, btn=evacuated_btn, idx=idx, table_ref=table):
                         if table_ref == self.ui.guest_table:
                             self.guest_individuals[idx].evakuiert = checked
@@ -166,6 +185,22 @@ class MainFrame(QtWidgets.QMainWindow):
                 self.update_counters()
             present_btn.toggled.connect(present_handler)
             table.setCellWidget(row_idx, 5, present_btn)
+            # Set up evacuated button if present and anwesend is True
+            if individual.anwesend:
+                evacuated_btn = QtWidgets.QPushButton("Yes" if individual.evakuiert else "No")
+                evacuated_btn.setCheckable(True)
+                evacuated_btn.setChecked(individual.evakuiert)
+                evacuated_btn.setText("Yes" if individual.evakuiert else "No")
+                def evacuated_handler(checked, btn=evacuated_btn, idx=row_idx, table_ref=table):
+                    if table_ref == self.ui.guest_table:
+                        self.guest_individuals[idx].evakuiert = checked
+                    else:
+                        self.team_individuals[idx].evakuiert = checked
+                    btn.setText("Yes" if checked else "No")
+                    self.update_counters()
+                    self.save_all()
+                evacuated_btn.toggled.connect(evacuated_handler)
+                table.setCellWidget(row_idx, 6, evacuated_btn)
             notiz_item = QtWidgets.QTableWidgetItem(individual.notiz)
             notiz_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
             table.setItem(row_idx, 7, notiz_item)

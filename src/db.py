@@ -68,8 +68,17 @@ def load_individuals(table_type):
         individuals = []
         for row in rows:
             ind = Individual(row[0], row[1], row[2], row[3], row[4])
-            ind.anwesend = bool(row[5])
-            ind.evakuiert = bool(row[6])
+            # Robust conversion for anwesend and evakuiert
+            def to_bool(val):
+                if isinstance(val, bool):
+                    return val
+                if isinstance(val, int):
+                    return val == 1
+                if isinstance(val, str):
+                    return val.strip().lower() in ("1", "true", "yes")
+                return False
+            ind.anwesend = to_bool(row[5])
+            ind.evakuiert = to_bool(row[6])
             ind.notiz = row[7]
             individuals.append(ind)
         return individuals
@@ -148,3 +157,6 @@ class NetworkDB:
 
     def clear_all(self):
         requests.post(f'{self.base_url}/clear')
+
+# Ensure database tables exist on import
+init_db()
