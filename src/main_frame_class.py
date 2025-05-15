@@ -152,6 +152,7 @@ class MainFrame(QtWidgets.QMainWindow):
                 items[col].setFlags(items[col].flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
                 table.setItem(row_idx, col, items[col])
             present_btn = QtWidgets.QPushButton("Yes" if individual.anwesend else "No")
+            present_btn.setStyleSheet("background-color: lightgreen;" if individual.anwesend else "background-color: lightcoral;")
             present_btn.setCheckable(True)
             present_btn.setChecked(individual.anwesend)
             # Ensure button text matches checked state
@@ -174,6 +175,7 @@ class MainFrame(QtWidgets.QMainWindow):
                 self.save_all()
                 if checked and not table.cellWidget(idx, 6):
                     evacuated_btn = QtWidgets.QPushButton("Yes" if person.evakuiert else "No")
+                    evacuated_btn.setStyleSheet("background-color: lightgreen;" if person.evakuiert else "background-color: lightcoral;")
                     evacuated_btn.setCheckable(True)
                     evacuated_btn.setChecked(person.evakuiert)
                     evacuated_btn.setText("Yes" if person.evakuiert else "No")
