@@ -3,9 +3,6 @@
 # It includes the UI setup, table configuration, data loading, entry addition, and counter updates.
 
 from PyQt6 import QtCore, QtGui, QtWidgets
-from backend import CheckInOutManager, Individual
-import datetime
-import os
 
 # UI class for the main window, sets up all widgets and layout
 class Ui_MainWindow(object):

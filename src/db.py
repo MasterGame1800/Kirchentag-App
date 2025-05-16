@@ -8,8 +8,8 @@ import os
 import datetime
 import requests
 
-# Path to the SQLite database file (appdata.db in the same directory as this script)
-DB_PATH = os.path.join(os.path.dirname(__file__), 'appdata.db')
+# Path to the SQLite database file (quatiersliste.db in the same directory as this script)
+DB_PATH = os.path.join(os.path.dirname(__file__), 'quatiersliste.db')
 
 # Helper function to get a new database connection
 def get_connection():
